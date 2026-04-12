@@ -1,0 +1,87 @@
+name: Instagram Auto-Post
+
+on:
+  # ── Scheduled triggers ──────────────────────────────────────────────────────
+  # GitHub Actions cron uses UTC. Two posts per day: 08:00 and 17:00.
+  # Note: GitHub may delay cron jobs by a few minutes under heavy load.
+  # The /api/post-now endpoint accepts a ±10-minute window, so this is fine.
+  schedule:
+    - cron: "0 8 * * *"   # 08:00 UTC daily
+    - cron: "0 17 * * *"  # 17:00 UTC daily
+
+  # ── Manual trigger from GitHub UI (useful for testing) ─────────────────────
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Bypass time window check? (true/false)"
+        required: false
+        default: "false"
+
+jobs:
+  post:
+    name: Trigger Instagram Post
+    runs-on: ubuntu-latest
+    timeout-minutes: 10  # Instagram container processing can take a few minutes
+
+    steps:
+      # ── 1. Log context ──────────────────────────────────────────────────────
+      - name: Log trigger info
+        run: |
+          echo "Triggered at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo "Force mode:   ${{ github.event.inputs.force || 'false' }}"
+
+      # ── 2. Call the post-now endpoint ───────────────────────────────────────
+      # APP_URL must be set in repo Settings → Secrets and variables → Actions
+      # e.g. https://your-app.onrender.com
+      - name: Call /api/post-now
+        id: post_call
+        run: |
+          FORCE="${{ github.event.inputs.force || 'false' }}"
+          URL="${{ secrets.APP_URL }}/api/post-now?force=${FORCE}"
+
+          echo "Calling: $URL"
+
+          # -f: fail on HTTP 4xx/5xx (except 207 which we handle below)
+          # -s: silent mode (no progress bar)
+          # -w: append HTTP status code to output
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
+            --max-time 480 \
+            "$URL")
+
+          # Split body and status code
+          HTTP_BODY=$(echo "$RESPONSE" | sed -n '1,/HTTP_STATUS:/p' | head -n -1)
+          HTTP_CODE=$(echo "$RESPONSE" | tr -d '\n' | sed 's/.*HTTP_STATUS://')
+
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response body:"
+          echo "$HTTP_BODY" | python3 -m json.tool || echo "$HTTP_BODY"
+
+          # Save for next step
+          echo "http_code=$HTTP_CODE" >> $GITHUB_OUTPUT
+          echo "response_body<<EOF" >> $GITHUB_OUTPUT
+          echo "$HTTP_BODY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          # 200 = ok/skipped, 207 = partial failure (some posts failed)
+          # Fail the workflow only on unexpected HTTP errors
+          if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "207" ]; then
+            echo "❌ Unexpected HTTP status: $HTTP_CODE"
+            exit 1
+          fi
+
+      # ── 3. Report result ────────────────────────────────────────────────────
+      - name: Summarise result
+        if: always()
+        run: |
+          CODE="${{ steps.post_call.outputs.http_code }}"
+          BODY='${{ steps.post_call.outputs.response_body }}'
+
+          if [ "$CODE" = "200" ]; then
+            echo "✅ Endpoint returned 200 — check body for details."
+          elif [ "$CODE" = "207" ]; then
+            echo "⚠️  Endpoint returned 207 — some posts failed. Check logs on Render."
+          else
+            echo "❌ Unexpected status $CODE."
+          fi
+
+          echo "Full response: $BODY"
