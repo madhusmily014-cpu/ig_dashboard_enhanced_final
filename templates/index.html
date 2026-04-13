@@ -499,7 +499,15 @@ function showPanel(name){
 function toast(msg, type='info'){
   const el = document.createElement('div');
   el.className = `toast-item t-${type}`;
-  ${({ok:'✓',err:'✕',info:'ℹ'}[type] || 'ℹ')}
+
+  const icons = {
+    ok: '✓',
+    err: '✕',
+    info: 'ℹ'
+  };
+
+  el.innerHTML = `<span>${icons[type] || 'ℹ'}</span><span>${msg}</span>`;
+  
   document.getElementById('toast').appendChild(el);
   setTimeout(() => el.remove(), 3500);
 }
