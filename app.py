@@ -68,6 +68,13 @@ load_dotenv()
 
 app = Flask(__name__)
 
+
+@app.after_request
+def set_content_type(response):
+    if response.content_type.startswith('text/html'):
+        response.content_type = 'text/html; charset=utf-8'
+    return response
+
 UPLOAD_FOLDER = Path("/tmp/ig_uploads")
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = str(UPLOAD_FOLDER)
@@ -703,7 +710,6 @@ def api_upload():
         public_id = result["public_id"]
         log.info(f"Cloudinary upload OK: {public_id}")
     except Exception as e:
-        tmp.unlink(missing_ok=True)
         return jsonify({"ok": False, "error": f"Cloudinary upload failed: {e}"}), 500
     finally:
         tmp.unlink(missing_ok=True)  # always remove the temp file
@@ -858,6 +864,12 @@ def api_daily_log():
           GROUP BY day ORDER BY day
         """).fetchall()
     return jsonify([dict(r) for r in rows])
+
+
+
+@app.route("/favicon.ico")
+def favicon():
+    return "", 204
 
 
 @app.route("/health")
