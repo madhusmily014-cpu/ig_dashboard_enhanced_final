@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>ReelAgent — Instagram Automation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -454,26 +455,26 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 <div id="toast"></div>
 
 <script>
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
 // STATE
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
 let posts    = [];
 let accounts = [];
 let selectedFile = null;
 let selectedAccountIds = new Set();
 
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
 // CLOCK
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
 function updateClock(){
   document.getElementById('clock').textContent = new Date().toUTCString().split(' ')[4] + ' UTC';
 }
 setInterval(updateClock, 1000);
 updateClock();
 
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
 // NAVIGATION
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
 const panelTitles = {
   dashboard:'Dashboard', upload:'Upload Video',
   queue:'Post Queue', timeline:'Daily Schedule',
@@ -493,34 +494,28 @@ function showPanel(name){
   if(name === 'upload')    renderAccountChips();
 }
 
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
 // TOAST
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
 function toast(msg, type='info'){
+  const icons = {ok:'\u2713',err:'\u2715',info:'\u2139'};
+  const icon = icons[type] || icons.info;
   const el = document.createElement('div');
-  el.className = `toast-item t-${type}`;
-
-  const icons = {
-    ok: '✓',
-    err: '✕',
-    info: 'ℹ'
-  };
-
-  el.innerHTML = `<span>${icons[type] || 'ℹ'}</span><span>${msg}</span>`;
-  
+  el.className = 'toast-item t-' + type;
+  el.innerHTML = '<span>' + icon + '</span><span>' + msg + '</span>';
   document.getElementById('toast').appendChild(el);
-  setTimeout(() => el.remove(), 3500);
+  setTimeout(function(){ el.remove(); }, 3500);
 }
 
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
 // DATA FETCH
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
 async function fetchStats(){
   try {
     const r = await fetch('/api/stats');
     if(!r.ok) throw new Error('HTTP ' + r.status);
     const s = await r.json();
-    const n = v => (v == null ? 0 : v);   // coerce SQLite NULL → 0
+    const n = v => (v == null ? 0 : v);   // coerce SQLite NULL -> 0
     document.getElementById('s-total').textContent   = n(s.total);
     document.getElementById('s-posted').textContent  = n(s.posted);
     document.getElementById('s-pending').textContent = n(s.pending);
@@ -556,9 +551,9 @@ async function refresh(){
   await Promise.all([fetchStats(), fetchPosts(), fetchAccounts()]);
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// DASHBOARD — NEXT POSTS
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
+// DASHBOARD - NEXT POSTS
+// ========================================================================
 function renderNextPosts(){
   const container = document.getElementById('next-posts-list');
   const upcoming  = posts
@@ -566,7 +561,7 @@ function renderNextPosts(){
     .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
     .slice(0, 6);
   if(!upcoming.length){
-    container.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>No posts scheduled. Upload a video to get started.</p></div>`;
+    container.innerHTML = `<div class="empty-state"><div class="icon"></div><p>No posts scheduled. Upload a video to get started.</p></div>`;
     return;
   }
   container.innerHTML = upcoming.map(p => {
@@ -578,22 +573,22 @@ function renderNextPosts(){
       <div class="tl-posts">
         <div class="tl-post s-pending">
           <span class="dot"></span>
-          <span class="acct">${p.account_name || '—'}</span>
-          <span class="name">${p.caption ? p.caption.slice(0, 30) + (p.caption.length > 30 ? '…' : '') : 'No caption'}</span>
+          <span class="acct">${p.account_name || '-'}</span>
+          <span class="name">${p.caption ? p.caption.slice(0, 30) + (p.caption.length > 30 ? '...' : '') : 'No caption'}</span>
         </div>
       </div>
     </div>`;
   }).join('');
 }
 
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
 // POST QUEUE CARDS
 // Uses new schema: p.id, p.video_url, p.account_name
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
 function renderQueue(){
   const grid = document.getElementById('queue-grid');
   if(!posts.length){
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="icon">📂</div><p>Queue is empty. Upload a video to get started.</p></div>`;
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="icon"></div><p>Queue is empty. Upload a video to get started.</p></div>`;
     return;
   }
   grid.innerHTML = posts.map(p => postCard(p)).join('');
@@ -601,14 +596,14 @@ function renderQueue(){
 
 function postCard(p){
   const ssMap    = {pending:'ss-pending', posted:'ss-posted', failed:'ss-failed', posting:'ss-posting'};
-  const ssLabel  = {pending:'Scheduled', posted:'Posted', failed:'Failed', posting:'Posting…'};
+  const ssLabel  = {pending:'Scheduled', posted:'Posted', failed:'Failed', posting:'Posting...'};
 
   const scheduled = p.scheduled_at
     ? new Date(p.scheduled_at + 'Z').toLocaleString('en-GB', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) + ' UTC'
-    : '—';
+    : '-';
 
   const errorHtml = (p.status === 'failed' && p.error)
-    ? `<div class="post-error">⚠ ${p.error}</div>` : '';
+    ? `<div class="post-error">! ${p.error}</div>` : '';
 
   const canRetry  = p.status === 'failed' || p.status === 'posting';
   const canDelete = p.status !== 'posted';
@@ -621,7 +616,7 @@ function postCard(p){
     </div>
     <div class="post-body">
       <div class="post-vid">
-        <div class="vid-thumb">🎬</div>
+        <div class="vid-thumb"></div>
         <div class="vid-info">
           <div class="vid-name">${p.video_url ? 'Cloudinary video' : 'No video URL'}</div>
           <div class="vid-sub">${scheduled}</div>
@@ -629,13 +624,13 @@ function postCard(p){
       </div>
       <div class="post-caption">${p.caption || '<span style="color:var(--txt3)">No caption</span>'}</div>
       ${errorHtml}
-      ${p.media_id ? `<div style="font-size:10px;color:var(--green);font-family:'DM Mono',monospace;margin-top:8px">✓ media_id: ${p.media_id}</div>` : ''}
+      ${p.media_id ? `<div style="font-size:10px;color:var(--green);font-family:'DM Mono',monospace;margin-top:8px">OK media_id: ${p.media_id}</div>` : ''}
     </div>
     <div class="post-footer">
-      <span>${p.posted_at ? '✓ ' + new Date(p.posted_at + 'Z').toLocaleDateString('en-GB') : scheduled}</span>
+      <span>${p.posted_at ? 'OK ' + new Date(p.posted_at + 'Z').toLocaleDateString('en-GB') : scheduled}</span>
       <div class="post-actions">
-        ${canRetry  ? `<button class="act-btn retry"  onclick="retryPost(${p.id})">↺ Retry</button>`  : ''}
-        ${canDelete ? `<button class="act-btn danger" onclick="deletePost(${p.id})">✕ Delete</button>` : ''}
+        ${canRetry  ? `<button class="act-btn retry"  onclick="retryPost(${p.id})">R Retry</button>`  : ''}
+        ${canDelete ? `<button class="act-btn danger" onclick="deletePost(${p.id})">X Delete</button>` : ''}
       </div>
     </div>
   </div>`;
@@ -655,14 +650,14 @@ async function retryPost(id){
   try {
     const r = await fetch(`/api/retry/${id}`, {method:'POST'});
     const d = await r.json();
-    if(d.ok){ toast(`Post #${id} re-queued → ${d.scheduled_at}`, 'ok'); refresh(); }
+    if(d.ok){ toast(`Post #${id} re-queued -> ${d.scheduled_at}`, 'ok'); refresh(); }
     else { toast(d.error || 'Retry failed', 'err'); }
   } catch(e){ toast('Retry error: ' + e.message, 'err'); }
 }
 
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
 // TIMELINE
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
 async function renderTimeline(){
   const el = document.getElementById('timeline-list');
   try {
@@ -685,7 +680,7 @@ async function renderTimeline(){
     ])].sort();
 
     if(!allDays.length){
-      el.innerHTML = `<div class="empty-state"><div class="icon">📅</div><p>No schedule yet.</p></div>`;
+      el.innerHTML = `<div class="empty-state"><div class="icon"></div><p>No schedule yet.</p></div>`;
       return;
     }
 
@@ -697,8 +692,8 @@ async function renderTimeline(){
         return `<div class="tl-post s-${p.status}">
           <span class="dot"></span>
           <span class="time">${tm}</span>
-          <span class="acct">${p.account_name || '—'}</span>
-          <span class="name">${p.caption ? p.caption.slice(0, 25) + (p.caption.length > 25 ? '…' : '') : '#' + p.id}</span>
+          <span class="acct">${p.account_name || '-'}</span>
+          <span class="name">${p.caption ? p.caption.slice(0, 25) + (p.caption.length > 25 ? '...' : '') : '#' + p.id}</span>
         </div>`;
       }).join('');
 
@@ -712,9 +707,9 @@ async function renderTimeline(){
   }
 }
 
-// ════════════════════════════════════════════════════════════════════════
-// UPLOAD — drag/drop, file select, multi-account chips, submit
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
+// UPLOAD - drag/drop, file select, multi-account chips, submit
+// ========================================================================
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
 
@@ -746,7 +741,7 @@ function clearFile(){
 function renderAccountChips(){
   const container = document.getElementById('acct-chips');
   if(!accounts.length){
-    container.innerHTML = '<span style="font-size:11px;color:var(--txt3);font-family:\'DM Mono\',monospace">No accounts — add one in the Accounts tab</span>';
+    container.innerHTML = '<span style="font-size:11px;color:var(--txt3);font-family:\'DM Mono\',monospace">No accounts - add one in the Accounts tab</span>';
     selectedAccountIds.clear();
     return;
   }
@@ -796,7 +791,7 @@ async function submitUpload(){
 
     if(res.ok){
       const count = res.posts_created?.length || 1;
-      toast(`Uploaded — ${count} post${count > 1 ? 's' : ''} scheduled ✓`, 'ok');
+      toast(`Uploaded - ${count} post${count > 1 ? 's' : ''} scheduled OK`, 'ok');
       clearFile();
       document.getElementById('upload-caption').value = '';
       renderAccountChips();
@@ -811,14 +806,14 @@ async function submitUpload(){
   }
 }
 
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
 // ACCOUNTS PANEL
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
 async function renderAccounts(){
   await fetchAccounts();
   const tbody = document.getElementById('accounts-tbody');
   if(!accounts.length){
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--txt3);padding:32px;font-size:12px">No accounts yet — click "+ Add Account"</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--txt3);padding:32px;font-size:12px">No accounts yet - click "+ Add Account"</td></tr>';
     return;
   }
   tbody.innerHTML = accounts.map(a => `<tr>
@@ -848,7 +843,7 @@ async function addAccount(){
       body:JSON.stringify({name, account_id:igid, access_token:token})});
     const d = await r.json();
     if(d.ok){
-      toast(`Account "${name}" added ✓`, 'ok');
+      toast(`Account "${name}" added OK`, 'ok');
       hideAddAccountForm();
       document.getElementById('new-acct-name').value  = '';
       document.getElementById('new-acct-igid').value  = '';
@@ -872,18 +867,18 @@ async function deleteAccount(id, name){
 }
 
 async function testAccount(id){
-  toast('Testing…', 'info');
+  toast('Testing...', 'info');
   try {
     const r = await fetch(`/api/accounts/${id}/test`, {method:'POST'});
     const d = await r.json();
-    if(d.ok) toast(`✓ Connected — @${d.username || d.name}`, 'ok');
-    else     toast('✕ ' + (d.error || 'Failed'), 'err');
+    if(d.ok) toast(`OK Connected - @${d.username || d.name}`, 'ok');
+    else     toast('X ' + (d.error || 'Failed'), 'err');
   } catch(e){ toast('Error: ' + e.message, 'err'); }
 }
 
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
 // SETTINGS
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
 async function loadConfig(){
   try {
     const r = await fetch('/api/config');
@@ -902,7 +897,7 @@ async function saveSchedule(){
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({post_time_1:t1, post_time_2:t2})});
     const d = await r.json();
-    if(d.ok) toast('Schedule updated ✓', 'ok');
+    if(d.ok) toast('Schedule updated OK', 'ok');
     else     toast('Update failed', 'err');
   } catch(e){ toast('Error: ' + e.message, 'err'); }
 }
@@ -913,15 +908,15 @@ async function testConnection(){
   const msgEl    = document.getElementById('conn-msg');
   statusEl.style.display = 'flex';
   dotEl.style.background = 'var(--yellow)';
-  msgEl.textContent = 'Testing…';
+  msgEl.textContent = 'Testing...';
   try {
     const r = await fetch('/api/test-connection', {method:'POST'});
     const d = await r.json();
     if(d.ok){
       dotEl.style.background = 'var(--green)';
       dotEl.style.boxShadow  = '0 0 8px var(--green)';
-      msgEl.textContent = `Connected — @${d.username || d.name}`;
-      toast('Connection OK ✓', 'ok');
+      msgEl.textContent = `Connected - @${d.username || d.name}`;
+      toast('Connection OK OK', 'ok');
     } else {
       dotEl.style.background = 'var(--red)';
       dotEl.style.boxShadow  = 'none';
@@ -935,9 +930,9 @@ async function testConnection(){
   }
 }
 
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
 // INIT
-// ════════════════════════════════════════════════════════════════════════
+// ========================================================================
 refresh();
 setInterval(refresh, 30000);
 </script>
